@@ -14,7 +14,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
     -o gluetarr ./cmd/gluetarr
 
 # Runtime Stage
-FROM alpine:3.20
+FROM alpine:3.23
 WORKDIR /app
 RUN apk add --no-cache ca-certificates tzdata
 # Create non-root user
