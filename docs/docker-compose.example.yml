@@ -1,0 +1,52 @@
+# Example Docker Compose configuration for Gluetarr
+# Copy this file to docker-compose.yml and customize as needed
+
+services:
+  gluetun:
+    image: qmcgaw/gluetun
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - VPN_SERVICE_PROVIDER=your_provider
+      - VPN_TYPE=openvpn
+      - OPENVPN_USER=your_username
+      - OPENVPN_PASSWORD=your_password
+      - VPN_PORT_FORWARDING=on
+    volumes:
+      - gluetun-data:/tmp/gluetun
+    ports:
+      - 8080:8080  # qBittorrent WebUI
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent
+    container_name: qbittorrent
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - WEBUI_PORT=8080
+    volumes:
+      - ./qbittorrent:/config
+      - ./downloads:/downloads
+
+  gluetarr:
+    image: ghcr.io/eslutz/gluetarr:latest
+    container_name: gluetarr
+    depends_on:
+      - gluetun
+      - qbittorrent
+    environment:
+      - GLUETUN_PORT_FILE=/tmp/gluetun/forwarded_port
+      - QBIT_ADDR=http://gluetun:8080
+      - QBIT_USER=admin
+      - QBIT_PASS=adminadmin
+      - SYNC_INTERVAL=60
+      - LOG_LEVEL=info
+    volumes:
+      - gluetun-data:/tmp/gluetun:ro
+    ports:
+      - 9090:9090  # Metrics & Health
+
+volumes:
+  gluetun-data:
