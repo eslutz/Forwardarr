@@ -12,7 +12,7 @@ func TestNewClient_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v2/auth/login" {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Ok."))
+			_, _ = w.Write([]byte("Ok."))
 			return
 		}
 		w.WriteHeader(http.StatusNotFound)
@@ -31,7 +31,7 @@ func TestNewClient_Success(t *testing.T) {
 func TestNewClient_LoginFailure(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte("Fails."))
+		_, _ = w.Write([]byte("Fails."))
 	}))
 	defer server.Close()
 
@@ -44,7 +44,7 @@ func TestNewClient_LoginFailure(t *testing.T) {
 func TestLogin_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Ok."))
+		_, _ = w.Write([]byte("Ok."))
 	}))
 	defer server.Close()
 
@@ -60,7 +60,7 @@ func TestLogin_Failure(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		loginAttempts++
 		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte("Fails."))
+		_, _ = w.Write([]byte("Fails."))
 	}))
 	defer server.Close()
 
@@ -88,13 +88,13 @@ func TestGetPort_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v2/auth/login" {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Ok."))
+			_, _ = w.Write([]byte("Ok."))
 			return
 		}
 		if r.URL.Path == "/api/v2/app/preferences" {
 			prefs := Preferences{ListenPort: 12345}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(prefs)
+			_ = json.NewEncoder(w).Encode(prefs)
 			return
 		}
 		w.WriteHeader(http.StatusNotFound)
@@ -116,7 +116,7 @@ func TestGetPort_Reauthentication(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v2/auth/login" {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Ok."))
+			_, _ = w.Write([]byte("Ok."))
 			return
 		}
 		if r.URL.Path == "/api/v2/app/preferences" {
@@ -128,7 +128,7 @@ func TestGetPort_Reauthentication(t *testing.T) {
 			}
 			prefs := Preferences{ListenPort: 54321}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(prefs)
+			_ = json.NewEncoder(w).Encode(prefs)
 			return
 		}
 		w.WriteHeader(http.StatusNotFound)
@@ -153,12 +153,12 @@ func TestSetPort_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v2/auth/login" {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Ok."))
+			_, _ = w.Write([]byte("Ok."))
 			return
 		}
 		if r.URL.Path == "/api/v2/app/setPreferences" {
 			var data map[string]interface{}
-			json.NewDecoder(r.Body).Decode(&data)
+			_ = json.NewDecoder(r.Body).Decode(&data)
 			if port, ok := data["listen_port"].(float64); ok {
 				receivedPort = int(port)
 			}
@@ -184,7 +184,7 @@ func TestSetPort_Reauthentication(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v2/auth/login" {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Ok."))
+			_, _ = w.Write([]byte("Ok."))
 			return
 		}
 		if r.URL.Path == "/api/v2/app/setPreferences" {
@@ -215,12 +215,12 @@ func TestPing_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v2/auth/login" {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Ok."))
+			_, _ = w.Write([]byte("Ok."))
 			return
 		}
 		if r.URL.Path == "/api/v2/app/version" {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("v4.5.0"))
+			_, _ = w.Write([]byte("v4.5.0"))
 			return
 		}
 		w.WriteHeader(http.StatusNotFound)
@@ -238,7 +238,7 @@ func TestPing_Failure(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v2/auth/login" {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Ok."))
+			_, _ = w.Write([]byte("Ok."))
 			return
 		}
 		if r.URL.Path == "/api/v2/app/version" {
@@ -260,7 +260,7 @@ func TestPing_Reauthentication(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v2/auth/login" {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Ok."))
+			_, _ = w.Write([]byte("Ok."))
 			return
 		}
 		if r.URL.Path == "/api/v2/app/version" {
