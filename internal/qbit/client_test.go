@@ -274,7 +274,8 @@ func TestPing_Reauthentication(t *testing.T) {
 
 	client, _ := NewClient(server.URL, "admin", "admin")
 	err := client.Ping()
-	// Should successfully re-authenticate
+	// Ping only calls Login() on 403 but doesn't retry the request
+	// So it should return nil (successful re-authentication)
 	if err != nil {
 		t.Errorf("Ping() error = %v, want nil", err)
 	}

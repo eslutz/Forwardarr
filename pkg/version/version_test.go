@@ -11,6 +11,13 @@ func TestString(t *testing.T) {
 	origCommit := Commit
 	origDate := Date
 
+	// Restore original values at the end
+	defer func() {
+		Version = origVersion
+		Commit = origCommit
+		Date = origDate
+	}()
+
 	// Test with custom values
 	Version = "1.2.3"
 	Commit = "abc123"
@@ -34,11 +41,6 @@ func TestString(t *testing.T) {
 	if result != expected {
 		t.Errorf("String() = %q, want %q", result, expected)
 	}
-
-	// Restore original values
-	Version = origVersion
-	Commit = origCommit
-	Date = origDate
 }
 
 func TestVersionVariables(t *testing.T) {

@@ -152,9 +152,9 @@ golangci-lint run
 
 # Run locally
 export GLUETUN_PORT_FILE=/path/to/port/file
-export QBIT_ADDR=http://localhost:8080
-export QBIT_USER=admin
-export QBIT_PASS=adminadmin
+export TORRENT_CLIENT_URL=http://localhost:8080
+export TORRENT_CLIENT_USER=admin
+export TORRENT_CLIENT_PASSWORD=adminadmin
 go run ./cmd/forwardarr
 ```
 

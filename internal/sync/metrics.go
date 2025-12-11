@@ -10,7 +10,7 @@ import (
 var (
 	currentPort = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "forwardarr_current_port",
-		Help: "The current forwarded port from Gluetun",
+		Help: "The current forwarded port being synchronized",
 	})
 
 	syncTotal = promauto.NewCounter(prometheus.CounterOpts{

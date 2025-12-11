@@ -26,7 +26,6 @@ go.work
 
 # Binary outputs
 forwardarr
-gluetarr
 coverage.out
 
 ### macOS ###
