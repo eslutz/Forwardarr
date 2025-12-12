@@ -203,7 +203,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Gluetun](https://github.com/qdm12/gluetun) - VPN client with port forwarding
 - [qBittorrent](https://www.qbittorrent.org/) - BitTorrent client
 - [fsnotify](https://github.com/fsnotify/fsnotify) - Cross-platform file system notifications
+- [Prometheus](https://prometheus.io/) - Monitoring system and time series database
 
 ## Related Projects
 
-- [Torarr](https://github.com/eslutz/torarr) - Similar project for Transmission
+- [Torarr](https://github.com/eslutz/torarr) - Tor proxy container for Prowlarr to access indexers via onion addresses

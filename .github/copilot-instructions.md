@@ -1,82 +1,82 @@
-# Forwardarr Context for GitHub Copilot
+# Forwardarr AI Coding Instructions
 
 ## Project Overview
 
-Forwardarr is a lightweight Go application that automatically synchronizes port forwarding changes from Gluetun VPN to qBittorrent. It monitors a port file written by Gluetun and updates qBittorrent's listening port accordingly.
+Forwardarr (formerly Gluetarr) is a Go application that synchronizes port forwarding changes from Gluetun VPN to qBittorrent. It is designed for reliability and observability in containerized environments.
 
 ## Architecture
 
-- **Language**: Go 1.25+
-- **Core Dependencies**:
-  - `fsnotify/fsnotify`: File system watching
-  - `prometheus/client_golang`: Metrics and observability
-  - `rs/zerolog`: Structured logging
+- **Entry Point**: `cmd/forwardarr/main.go` initializes configuration, clients, and starts the server and watcher.
+- **Core Logic**:
+  - `internal/sync`: Watches the Gluetun port file using `fsnotify`. Updates qBittorrent when the file changes or on a ticker interval.
+  - `internal/qbit`: Client for interacting with qBittorrent API (auth, get/set preferences).
+  - `internal/server`: HTTP server providing health, readiness, and metrics endpoints.
+- **Configuration**: Handled in `internal/config` via environment variables.
 
-## Project Structure
+## Development Workflows
 
-```
-cmd/forwardarr/   - Application entrypoint
-internal/config/  - Configuration management
-internal/qbit/    - qBittorrent API client
-internal/sync/    - File watching and sync logic
-internal/server/  - HTTP server for health/metrics
-pkg/version/      - Build version information
-```
+### Build & Run
 
-## Key Components
+- **Local**: `go run ./cmd/forwardarr`
+- **Docker**: `docker build -t forwardarr .`
+- **Version Injection**: The `Dockerfile` injects version info using `-ldflags`.
+  ```bash
+  -ldflags="-w -s -X github.com/eslutz/forwardarr/pkg/version.Version=${VERSION} ..."
+  ```
 
-### Config (internal/config)
+### Testing
 
-Loads configuration from environment variables with sensible defaults.
+- **Framework**: Standard Go `testing` package.
+- **Pattern**: Prefer table-driven tests for logic (e.g., `internal/config/config_test.go`).
+- **File System**: Use `t.TempDir()` for tests involving file operations (e.g., `internal/sync/watcher_test.go`).
 
-### qBittorrent Client (internal/qbit)
+### Release Process
 
-- Cookie-based authentication
-- Automatic re-authentication on 403 errors
-- Type-safe API methods for getting/setting ports
+The release process is fully automated and driven by the `VERSION` file.
 
-### Sync Watcher (internal/sync)
+1.  **Update Version**: Modify the `VERSION` file in the root of the repository (e.g., `1.1.0`).
+2.  **Commit & Push**: Commit the change and push to `main` (or merge a PR).
+3.  **CI Workflow**: The `CI` workflow (`.github/workflows/ci.yml`) runs linting, tests, and security checks.
+4.  **Release Workflow**:
+    - Triggered automatically after `CI` completes successfully on `main`.
+    - Reads the `VERSION` file.
+    - Checks if a git tag `v{VERSION}` already exists.
+    - **If the tag is new**:
+      - Creates and pushes the git tag `v{VERSION}`.
+      - Builds and pushes the Docker image to GHCR.
+      - Creates a GitHub Release.
+    - **If the tag exists**: The workflow skips the release steps.
 
-- Uses fsnotify for efficient file watching
-- Fallback ticker for reliability
-- Prometheus metrics integration
+**Crucial**: Do not manually create git tags. The `Release` workflow handles tagging based on the `VERSION` file content.
 
-### HTTP Server (internal/server)
+## Conventions & Patterns
 
-- `/health` - Liveness probe
-- `/ready` - Readiness probe (checks qBittorrent connectivity)
-- `/metrics` - Prometheus metrics
+### Error Handling
 
-## Metrics
+- Use `fmt.Errorf` with `%w` to wrap errors.
+- Return errors up the stack; log only at the top level or in background goroutines.
 
-- `forwardarr_info` - Build information
-- `forwardarr_current_port` - Current forwarded port
-- `forwardarr_sync_total` - Successful syncs counter
-- `forwardarr_sync_errors` - Failed syncs counter
-- `forwardarr_last_sync_timestamp` - Last successful sync time
+### Logging
 
-## Coding Style
+- Use `log/slog` for structured logging.
+- Levels: `Info` for startup/shutdown, `Debug` for operational details (e.g., "port file changed"), `Error` for failures.
+- Include context fields: `slog.Info("msg", "key", value)`.
 
-- Use structured logging with zerolog
-- Follow Go standard error handling patterns
-- Prefer composition over inheritance
-- Keep functions small and focused
-- Document exported types and functions
+### Configuration
 
-## Testing Considerations
+- All config is driven by environment variables (see `internal/config/config.go`).
+- Default values are provided for all settings.
 
-- Mock file system operations for unit tests
-- Mock qBittorrent API responses
-- Test error handling paths
-- Verify metrics are updated correctly
+### Concurrency
 
-## Common Tasks
+- Use `context.Context` for cancellation and graceful shutdown.
+- `main.go` manages the lifecycle of background goroutines (server, watcher) using `signal.NotifyContext`.
 
-- Adding new metrics: Add to `internal/sync/metrics.go`
-- Adding new config options: Update `internal/config/config.go`
-- Modifying qBittorrent API: Update `internal/qbit/client.go`
-- Adding HTTP endpoints: Update `internal/server/handlers.go`
+## Key Files
 
-## Docker Deployment
-
-Multi-stage build for minimal image size (~15MB). Runs as non-root user (UID 1000).
+- `VERSION`: Source of truth for the project version.
+- `cmd/forwardarr/main.go`: Application wiring and lifecycle.
+- `internal/sync/watcher.go`: File watching and sync logic.
+- `internal/qbit/client.go`: qBittorrent API interaction.
+- `.github/workflows/ci.yml`: CI pipeline (lint, test, security).
+- `.github/workflows/release.yml`: Release pipeline (tag, build, publish).
