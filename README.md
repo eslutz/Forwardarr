@@ -2,7 +2,7 @@
 
 [![Workflow Status](https://github.com/eslutz/forwardarr/actions/workflows/release.yml/badge.svg)](https://github.com/eslutz/forwardarr/actions/workflows/release.yml)
 [![Security Check](https://github.com/eslutz/forwardarr/actions/workflows/security.yml/badge.svg)](https://github.com/eslutz/forwardarr/actions/workflows/security.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/eslutz/forwardarr)](https://goreportcard.com/report/github.com/eslutz/forwardarr)
+[![Go Report Card](https://goreportcard.com/badge/github.com/eslutz/gluetarr)](https://goreportcard.com/report/github.com/eslutz/gluetarr)
 [![License](https://img.shields.io/github/license/eslutz/forwardarr)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/eslutz/forwardarr?color=007ec6)](https://github.com/eslutz/forwardarr/releases/latest)
 
