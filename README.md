@@ -59,7 +59,7 @@ All configuration is done via environment variables. An example configuration fi
 |----------|---------|-------------|
 | `WEBHOOK_URL` | | Webhook endpoint URL (leave empty to disable) |
 | `WEBHOOK_TEMPLATE` | `json` | Template: `json`, `discord`, `slack`, `gotify` |
-| `WEBHOOK_EVENTS` | `port_changed` | Events to send (comma-separated) |
+| `WEBHOOK_EVENTS` | `port_changed` | Events: `port_changed` (only event currently supported) |
 | `WEBHOOK_TIMEOUT` | `10` | HTTP timeout in seconds |
 
 ## Architecture
@@ -138,12 +138,13 @@ WEBHOOK_URL=https://gotify.example.com/message?token=YOUR_TOKEN
 Control which events trigger webhooks using `WEBHOOK_EVENTS`:
 
 ```bash
-WEBHOOK_EVENTS=port_changed          # Only port changes
-WEBHOOK_EVENTS=port_changed,other    # Multiple events (comma-separated)
+WEBHOOK_EVENTS=port_changed          # Only port changes (default)
 ```
 
-Currently supported events:
-- `port_changed` - Triggered when the port is updated
+**Currently supported events:**
+- `port_changed` - Triggered when the forwarded port is successfully updated in qBittorrent
+
+**Note:** Currently, `port_changed` is the only event type available. The event filtering system is designed for extensibility, allowing additional events to be added in future releases (such as `sync_error`, `startup`, or `shutdown`).
 
 ### Webhook Security
 
