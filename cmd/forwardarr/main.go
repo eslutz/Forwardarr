@@ -12,6 +12,7 @@ import (
 	"github.com/eslutz/forwardarr/internal/qbit"
 	"github.com/eslutz/forwardarr/internal/server"
 	"github.com/eslutz/forwardarr/internal/sync"
+	"github.com/eslutz/forwardarr/internal/webhook"
 	_ "github.com/eslutz/forwardarr/pkg/version"
 )
 
@@ -24,6 +25,7 @@ func main() {
 		"qbit_addr", cfg.QbitAddr,
 		"sync_interval", cfg.SyncInterval,
 		"metrics_port", cfg.MetricsPort,
+		"webhook_enabled", cfg.WebhookEnabled,
 	)
 
 	qbitClient, err := qbit.NewClient(cfg.QbitAddr, cfg.QbitUser, cfg.QbitPass)
@@ -32,7 +34,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	watcher, err := sync.NewWatcher(cfg.GluetunPortFile, qbitClient, cfg.SyncInterval)
+	var webhookClient *webhook.Client
+	if cfg.WebhookEnabled {
+		webhookClient = webhook.NewClient(
+			cfg.WebhookURL,
+			cfg.WebhookTimeout,
+			webhook.Template(cfg.WebhookTemplate),
+			cfg.WebhookEvents,
+		)
+		slog.Info("webhook notifications enabled",
+			"url", cfg.WebhookURL,
+			"timeout", cfg.WebhookTimeout,
+			"template", cfg.WebhookTemplate,
+			"events", cfg.WebhookEvents,
+		)
+	}
+
+	watcher, err := sync.NewWatcher(cfg.GluetunPortFile, qbitClient, webhookClient, cfg.SyncInterval)
 	if err != nil {
 		slog.Error("failed to create file watcher", "error", err)
 		os.Exit(1)

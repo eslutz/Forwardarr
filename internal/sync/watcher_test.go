@@ -7,8 +7,10 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/eslutz/forwardarr/internal/qbit"
+	"github.com/eslutz/forwardarr/internal/webhook"
 )
 
 func TestReadPortFromFile_Success(t *testing.T) {
@@ -113,7 +115,7 @@ func TestWatcherSyncPortUpdatesPort(t *testing.T) {
 		t.Fatalf("NewClient() error = %v", err)
 	}
 
-	watcher := &Watcher{portFile: portFile, qbitClient: client}
+	watcher := &Watcher{portFile: portFile, qbitClient: client, webhookClient: nil}
 	if err := watcher.syncPort(); err != nil {
 		t.Fatalf("syncPort() error = %v", err)
 	}
@@ -144,7 +146,7 @@ func TestWatcherSyncPortAlreadyInSync(t *testing.T) {
 		t.Fatalf("NewClient() error = %v", err)
 	}
 
-	watcher := &Watcher{portFile: portFile, qbitClient: client}
+	watcher := &Watcher{portFile: portFile, qbitClient: client, webhookClient: nil}
 	if err := watcher.syncPort(); err != nil {
 		t.Fatalf("syncPort() error = %v", err)
 	}
@@ -172,7 +174,7 @@ func TestWatcherSyncPortGetPortError(t *testing.T) {
 		t.Fatalf("NewClient() error = %v", err)
 	}
 
-	watcher := &Watcher{portFile: portFile, qbitClient: client}
+	watcher := &Watcher{portFile: portFile, qbitClient: client, webhookClient: nil}
 	if err := watcher.syncPort(); err == nil {
 		t.Fatal("syncPort() error = nil, want error")
 	}
@@ -196,7 +198,7 @@ func TestWatcherSyncPortSetPortError(t *testing.T) {
 		t.Fatalf("NewClient() error = %v", err)
 	}
 
-	watcher := &Watcher{portFile: portFile, qbitClient: client}
+	watcher := &Watcher{portFile: portFile, qbitClient: client, webhookClient: nil}
 	if err := watcher.syncPort(); err == nil {
 		t.Fatal("syncPort() error = nil, want error")
 	}
@@ -314,5 +316,65 @@ func TestReadPortFromFile_ValidEdgeCases(t *testing.T) {
 				t.Errorf("readPortFromFile() = %d, want %d", port, tt.expected)
 			}
 		})
+	}
+}
+
+func TestWatcherSyncPortWithWebhook(t *testing.T) {
+	tmpDir := t.TempDir()
+	portFile := filepath.Join(tmpDir, "forwarded_port")
+	if err := os.WriteFile(portFile, []byte("7070"), 0644); err != nil {
+		t.Fatalf("failed to write port file: %v", err)
+	}
+
+	// Setup qBittorrent test server
+	qbitServer, port, _, setPortCalls := newTestQbitServer(t, 5050, 0, 0)
+	defer qbitServer.Close()
+
+	qbitClient, err := qbit.NewClient(qbitServer.URL, "user", "pass")
+	if err != nil {
+		t.Fatalf("NewClient() error = %v", err)
+	}
+
+	// Setup webhook test server
+	var webhookCalled bool
+	var receivedOldPort, receivedNewPort int
+	webhookServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		webhookCalled = true
+		var payload struct {
+			Event   string `json:"event"`
+			OldPort int    `json:"old_port"`
+			NewPort int    `json:"new_port"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Errorf("failed to decode webhook payload: %v", err)
+		}
+		receivedOldPort = payload.OldPort
+		receivedNewPort = payload.NewPort
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer webhookServer.Close()
+
+	// Create webhook client
+	webhookClient := webhook.NewClient(webhookServer.URL, 5*time.Second, webhook.TemplateJSON, []string{"port_changed"})
+
+	watcher := &Watcher{portFile: portFile, qbitClient: qbitClient, webhookClient: webhookClient}
+	if err := watcher.syncPort(); err != nil {
+		t.Fatalf("syncPort() error = %v", err)
+	}
+
+	if *port != 7070 {
+		t.Errorf("qBittorrent port = %d, want 7070", *port)
+	}
+	if *setPortCalls != 1 {
+		t.Errorf("SetPreferences call count = %d, want 1", *setPortCalls)
+	}
+	if !webhookCalled {
+		t.Error("webhook was not called")
+	}
+	if receivedOldPort != 5050 {
+		t.Errorf("webhook old_port = %d, want 5050", receivedOldPort)
+	}
+	if receivedNewPort != 7070 {
+		t.Errorf("webhook new_port = %d, want 7070", receivedNewPort)
 	}
 }

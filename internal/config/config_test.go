@@ -23,6 +23,11 @@ func TestLoad(t *testing.T) {
 				SyncInterval:    5 * time.Minute,
 				MetricsPort:     "9090",
 				LogLevel:        "info",
+				WebhookURL:      "",
+				WebhookEnabled:  false,
+				WebhookTimeout:  10 * time.Second,
+				WebhookTemplate: "json",
+				WebhookEvents:   []string{"port_changed"},
 			},
 		},
 		{
@@ -35,6 +40,10 @@ func TestLoad(t *testing.T) {
 				"SYNC_INTERVAL":           "120",
 				"METRICS_PORT":            "8080",
 				"LOG_LEVEL":               "debug",
+				"WEBHOOK_URL":             "http://example.com/webhook",
+				"WEBHOOK_TIMEOUT":         "30",
+				"WEBHOOK_TEMPLATE":        "discord",
+				"WEBHOOK_EVENTS":          "port_changed,sync_error",
 			},
 			expected: &Config{
 				GluetunPortFile: "/custom/path/port",
@@ -44,6 +53,11 @@ func TestLoad(t *testing.T) {
 				SyncInterval:    120 * time.Second,
 				MetricsPort:     "8080",
 				LogLevel:        "debug",
+				WebhookURL:      "http://example.com/webhook",
+				WebhookEnabled:  true,
+				WebhookTimeout:  30 * time.Second,
+				WebhookTemplate: "discord",
+				WebhookEvents:   []string{"port_changed", "sync_error"},
 			},
 		},
 		{
@@ -60,6 +74,11 @@ func TestLoad(t *testing.T) {
 				SyncInterval:    5 * time.Minute,
 				MetricsPort:     "9090",
 				LogLevel:        "warn",
+				WebhookURL:      "",
+				WebhookEnabled:  false,
+				WebhookTimeout:  10 * time.Second,
+				WebhookTemplate: "json",
+				WebhookEvents:   []string{"port_changed"},
 			},
 		},
 		{
@@ -75,6 +94,11 @@ func TestLoad(t *testing.T) {
 				SyncInterval:    5 * time.Minute,
 				MetricsPort:     "9090",
 				LogLevel:        "info",
+				WebhookURL:      "",
+				WebhookEnabled:  false,
+				WebhookTimeout:  10 * time.Second,
+				WebhookTemplate: "json",
+				WebhookEvents:   []string{"port_changed"},
 			},
 		},
 	}
@@ -113,6 +137,27 @@ func TestLoad(t *testing.T) {
 			}
 			if cfg.LogLevel != tt.expected.LogLevel {
 				t.Errorf("LogLevel = %v, want %v", cfg.LogLevel, tt.expected.LogLevel)
+			}
+			if cfg.WebhookURL != tt.expected.WebhookURL {
+				t.Errorf("WebhookURL = %v, want %v", cfg.WebhookURL, tt.expected.WebhookURL)
+			}
+			if cfg.WebhookEnabled != tt.expected.WebhookEnabled {
+				t.Errorf("WebhookEnabled = %v, want %v", cfg.WebhookEnabled, tt.expected.WebhookEnabled)
+			}
+			if cfg.WebhookTimeout != tt.expected.WebhookTimeout {
+				t.Errorf("WebhookTimeout = %v, want %v", cfg.WebhookTimeout, tt.expected.WebhookTimeout)
+			}
+			if cfg.WebhookTemplate != tt.expected.WebhookTemplate {
+				t.Errorf("WebhookTemplate = %v, want %v", cfg.WebhookTemplate, tt.expected.WebhookTemplate)
+			}
+			if len(cfg.WebhookEvents) != len(tt.expected.WebhookEvents) {
+				t.Errorf("WebhookEvents length = %d, want %d", len(cfg.WebhookEvents), len(tt.expected.WebhookEvents))
+			} else {
+				for i := range cfg.WebhookEvents {
+					if cfg.WebhookEvents[i] != tt.expected.WebhookEvents[i] {
+						t.Errorf("WebhookEvents[%d] = %v, want %v", i, cfg.WebhookEvents[i], tt.expected.WebhookEvents[i])
+					}
+				}
 			}
 		})
 	}

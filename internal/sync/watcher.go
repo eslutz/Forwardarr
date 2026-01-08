@@ -12,27 +12,30 @@ import (
 	"github.com/fsnotify/fsnotify"
 
 	"github.com/eslutz/forwardarr/internal/qbit"
+	"github.com/eslutz/forwardarr/internal/webhook"
 )
 
 type Watcher struct {
-	portFile     string
-	qbitClient   *qbit.Client
-	syncInterval time.Duration
-	lastPort     int
-	watcher      *fsnotify.Watcher
+	portFile      string
+	qbitClient    *qbit.Client
+	webhookClient *webhook.Client
+	syncInterval  time.Duration
+	lastPort      int
+	watcher       *fsnotify.Watcher
 }
 
-func NewWatcher(portFile string, qbitClient *qbit.Client, syncInterval time.Duration) (*Watcher, error) {
+func NewWatcher(portFile string, qbitClient *qbit.Client, webhookClient *webhook.Client, syncInterval time.Duration) (*Watcher, error) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create file watcher: %w", err)
 	}
 
 	w := &Watcher{
-		portFile:     portFile,
-		qbitClient:   qbitClient,
-		syncInterval: syncInterval,
-		watcher:      watcher,
+		portFile:      portFile,
+		qbitClient:    qbitClient,
+		webhookClient: webhookClient,
+		syncInterval:  syncInterval,
+		watcher:       watcher,
 	}
 
 	dir := filepath.Dir(portFile)
@@ -117,6 +120,13 @@ func (w *Watcher) syncPort() error {
 		SetCurrentPort(gluetunPort)
 		IncrementSyncTotal()
 		UpdateLastSyncTimestamp()
+
+		// Send webhook notification if webhook client is configured
+		if w.webhookClient != nil {
+			if err := w.webhookClient.SendPortChange(qbitPort, gluetunPort); err != nil {
+				slog.Warn("failed to send webhook notification", "error", err)
+			}
+		}
 	} else {
 		slog.Debug("ports are in sync", "port", gluetunPort)
 	}

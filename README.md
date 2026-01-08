@@ -11,6 +11,7 @@ A lightweight, production-ready Go application that automatically synchronizes p
 ## Features
 
 - **Automatic Port Synchronization**: Monitors Gluetun's forwarded port file and updates qBittorrent instantly
+- **Webhook Notifications**: Send HTTP POST notifications when port changes occur for external integrations
 - **Full Observability**: Prometheus metrics for monitoring and alerting
 - **Health & Readiness**: Kubernetes-compatible health check endpoints
 - **Efficient File Watching**: Uses fsnotify for real-time file system events
@@ -40,17 +41,30 @@ docker run -d \
 
 ## Configuration
 
-All configuration is done via environment variables. An example configuration file is available at [docs/.env.example](docs/.env.example).
+Forwardarr is configured via environment variables. For a complete, ready-to-use configuration file, see [docs/.env.example](docs/.env.example).
+
+### Essential Settings
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `GLUETUN_PORT_FILE` | `/tmp/gluetun/forwarded_port` | Path to Gluetun's port file |
-| `TORRENT_CLIENT_URL` | `http://localhost:8080` | Torrent client WebUI address |
-| `TORRENT_CLIENT_USER` | `admin` | Torrent client username |
-| `TORRENT_CLIENT_PASSWORD` | `adminadmin` | Torrent client password |
-| `SYNC_INTERVAL` | `300` | Fallback polling interval (seconds). Set to `0` to disable periodic sync. |
-| `METRICS_PORT` | `9090` | HTTP server port for metrics/health |
-| `LOG_LEVEL` | `info` | Logging level (debug, info, warn, error) |
+| `GLUETUN_PORT_FILE` | `/tmp/gluetun/forwarded_port` | Path to Gluetun's forwarded port file |
+| `TORRENT_CLIENT_URL` | `http://localhost:8080` | qBittorrent WebUI address |
+| `TORRENT_CLIENT_USER` | `admin` | qBittorrent username |
+| `TORRENT_CLIENT_PASSWORD` | `adminadmin` | qBittorrent password |
+| `SYNC_INTERVAL` | `300` | Polling interval in seconds (0 to disable) |
+| `METRICS_PORT` | `9090` | HTTP server port for health/metrics |
+| `LOG_LEVEL` | `info` | Log level: `debug`, `info`, `warn`, `error` |
+
+### Webhook Notifications (Optional)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `WEBHOOK_URL` | | Webhook endpoint (leave empty to disable) |
+| `WEBHOOK_TEMPLATE` | `json` | Format: `json`, `discord`, `slack`, `gotify` |
+| `WEBHOOK_EVENTS` | `port_changed` | Events to trigger webhooks |
+| `WEBHOOK_TIMEOUT` | `10` | Request timeout in seconds |
+
+> **📋 See [docs/.env.example](docs/.env.example) for complete configuration with detailed comments and examples.**
 
 ## Architecture
 
@@ -74,6 +88,75 @@ All configuration is done via environment variables. An example configuration fi
 3. Forwardarr watches this file for changes using fsnotify
 4. When the port changes, Forwardarr updates qBittorrent's listening port via API
 5. A fallback ticker ensures sync even if file events are missed (configurable, can be disabled)
+
+## Webhooks
+
+Forwardarr can send HTTP POST notifications when port changes occur. This is useful for integrating with other services or triggering automation workflows.
+
+### Webhook Configuration
+
+Configure webhooks via environment variables:
+
+```bash
+WEBHOOK_URL=http://your-server.com/webhook
+WEBHOOK_TEMPLATE=json  # Options: json, discord, slack, gotify
+WEBHOOK_EVENTS=port_changed  # Comma-separated event list
+WEBHOOK_TIMEOUT=10  # Timeout in seconds
+```
+
+### Webhook Templates
+
+Forwardarr supports multiple webhook formats:
+
+**JSON (default)** - Generic JSON payload
+```json
+{
+  "event": "port_changed",
+  "timestamp": "2026-01-08T12:00:00Z",
+  "old_port": 8080,
+  "new_port": 9090,
+  "message": "Port changed from 8080 to 9090"
+}
+```
+
+**Discord** - Formatted for Discord webhooks with embeds
+```bash
+WEBHOOK_TEMPLATE=discord
+WEBHOOK_URL=https://discord.com/api/webhooks/YOUR_WEBHOOK
+```
+
+**Slack** - Formatted for Slack webhooks with blocks
+```bash
+WEBHOOK_TEMPLATE=slack
+WEBHOOK_URL=https://hooks.slack.com/services/YOUR_WEBHOOK
+```
+
+**Gotify** - Formatted for Gotify push notifications
+```bash
+WEBHOOK_TEMPLATE=gotify
+WEBHOOK_URL=https://gotify.example.com/message?token=YOUR_TOKEN
+```
+
+### Event Filtering
+
+Control which events trigger webhooks using `WEBHOOK_EVENTS`:
+
+```bash
+WEBHOOK_EVENTS=port_changed          # Only port changes (default)
+```
+
+**Currently supported events:**
+- `port_changed` - Triggered when the forwarded port is successfully updated in qBittorrent
+
+**Note:** Currently, `port_changed` is the only event type available. The event filtering system is designed for extensibility, allowing additional events to be added in future releases (such as `sync_error`, `startup`, or `shutdown`).
+
+### Webhook Security
+
+- Webhooks are sent with `Content-Type: application/json`
+- User-Agent is set to `Forwardarr-Webhook/1.0`
+- Consider using HTTPS URLs for webhook endpoints
+- Implement signature verification on your webhook receiver if needed
+- Webhook failures are logged but do not prevent port updates
 
 ## HTTP Endpoints
 
