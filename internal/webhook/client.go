@@ -31,9 +31,7 @@ func NewClient(url string, timeout time.Duration) *Client {
 	return &Client{
 		url:     url,
 		timeout: timeout,
-		client: &http.Client{
-			Timeout: timeout,
-		},
+		client:  &http.Client{},
 	}
 }
 
