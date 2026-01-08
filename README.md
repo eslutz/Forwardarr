@@ -41,26 +41,30 @@ docker run -d \
 
 ## Configuration
 
-All configuration is done via environment variables. An example configuration file is available at [docs/.env.example](docs/.env.example).
+Forwardarr is configured via environment variables. For a complete, ready-to-use configuration file, see [docs/.env.example](docs/.env.example).
+
+### Essential Settings
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `GLUETUN_PORT_FILE` | `/tmp/gluetun/forwarded_port` | Path to Gluetun's port file |
-| `TORRENT_CLIENT_URL` | `http://localhost:8080` | Torrent client WebUI address |
-| `TORRENT_CLIENT_USER` | `admin` | Torrent client username |
-| `TORRENT_CLIENT_PASSWORD` | `adminadmin` | Torrent client password |
-| `SYNC_INTERVAL` | `300` | Fallback polling interval (seconds). Set to `0` to disable periodic sync. |
-| `METRICS_PORT` | `9090` | HTTP server port for metrics/health |
-| `LOG_LEVEL` | `info` | Logging level (debug, info, warn, error) |
+| `GLUETUN_PORT_FILE` | `/tmp/gluetun/forwarded_port` | Path to Gluetun's forwarded port file |
+| `TORRENT_CLIENT_URL` | `http://localhost:8080` | qBittorrent WebUI address |
+| `TORRENT_CLIENT_USER` | `admin` | qBittorrent username |
+| `TORRENT_CLIENT_PASSWORD` | `adminadmin` | qBittorrent password |
+| `SYNC_INTERVAL` | `300` | Polling interval in seconds (0 to disable) |
+| `METRICS_PORT` | `9090` | HTTP server port for health/metrics |
+| `LOG_LEVEL` | `info` | Log level: `debug`, `info`, `warn`, `error` |
 
-### Webhook Notifications
+### Webhook Notifications (Optional)
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `WEBHOOK_URL` | | Webhook endpoint URL (leave empty to disable) |
-| `WEBHOOK_TEMPLATE` | `json` | Template: `json`, `discord`, `slack`, `gotify` |
-| `WEBHOOK_EVENTS` | `port_changed` | Events: `port_changed` (only event currently supported) |
-| `WEBHOOK_TIMEOUT` | `10` | HTTP timeout in seconds |
+| `WEBHOOK_URL` | | Webhook endpoint (leave empty to disable) |
+| `WEBHOOK_TEMPLATE` | `json` | Format: `json`, `discord`, `slack`, `gotify` |
+| `WEBHOOK_EVENTS` | `port_changed` | Events to trigger webhooks |
+| `WEBHOOK_TIMEOUT` | `10` | Request timeout in seconds |
+
+> **📋 See [docs/.env.example](docs/.env.example) for complete configuration with detailed comments and examples.**
 
 ## Architecture
 
