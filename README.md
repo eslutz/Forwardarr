@@ -52,8 +52,15 @@ All configuration is done via environment variables. An example configuration fi
 | `SYNC_INTERVAL` | `300` | Fallback polling interval (seconds). Set to `0` to disable periodic sync. |
 | `METRICS_PORT` | `9090` | HTTP server port for metrics/health |
 | `LOG_LEVEL` | `info` | Logging level (debug, info, warn, error) |
-| `WEBHOOK_URL` | `` | Webhook URL for port change notifications. Leave empty to disable webhooks. |
-| `WEBHOOK_TIMEOUT` | `10` | Webhook request timeout in seconds |
+
+### Webhook Notifications
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `WEBHOOK_URL` | | Webhook endpoint URL (leave empty to disable) |
+| `WEBHOOK_TEMPLATE` | `json` | Template: `json`, `discord`, `slack`, `gotify` |
+| `WEBHOOK_EVENTS` | `port_changed` | Events to send (comma-separated) |
+| `WEBHOOK_TIMEOUT` | `10` | HTTP timeout in seconds |
 
 ## Architecture
 
@@ -84,17 +91,20 @@ Forwardarr can send HTTP POST notifications when port changes occur. This is use
 
 ### Webhook Configuration
 
-Set the `WEBHOOK_URL` environment variable to enable webhook notifications:
+Configure webhooks via environment variables:
 
 ```bash
 WEBHOOK_URL=http://your-server.com/webhook
-WEBHOOK_TIMEOUT=10  # Optional, defaults to 10 seconds
+WEBHOOK_TEMPLATE=json  # Options: json, discord, slack, gotify
+WEBHOOK_EVENTS=port_changed  # Comma-separated event list
+WEBHOOK_TIMEOUT=10  # Timeout in seconds
 ```
 
-### Webhook Payload
+### Webhook Templates
 
-When a port change is detected, Forwardarr sends a JSON payload:
+Forwardarr supports multiple webhook formats:
 
+**JSON (default)** - Generic JSON payload
 ```json
 {
   "event": "port_changed",
@@ -104,6 +114,36 @@ When a port change is detected, Forwardarr sends a JSON payload:
   "message": "Port changed from 8080 to 9090"
 }
 ```
+
+**Discord** - Formatted for Discord webhooks with embeds
+```bash
+WEBHOOK_TEMPLATE=discord
+WEBHOOK_URL=https://discord.com/api/webhooks/YOUR_WEBHOOK
+```
+
+**Slack** - Formatted for Slack webhooks with blocks
+```bash
+WEBHOOK_TEMPLATE=slack
+WEBHOOK_URL=https://hooks.slack.com/services/YOUR_WEBHOOK
+```
+
+**Gotify** - Formatted for Gotify push notifications
+```bash
+WEBHOOK_TEMPLATE=gotify
+WEBHOOK_URL=https://gotify.example.com/message?token=YOUR_TOKEN
+```
+
+### Event Filtering
+
+Control which events trigger webhooks using `WEBHOOK_EVENTS`:
+
+```bash
+WEBHOOK_EVENTS=port_changed          # Only port changes
+WEBHOOK_EVENTS=port_changed,other    # Multiple events (comma-separated)
+```
+
+Currently supported events:
+- `port_changed` - Triggered when the port is updated
 
 ### Webhook Security
 

@@ -11,14 +11,22 @@ import (
 func TestNewClient(t *testing.T) {
 	url := "http://example.com/webhook"
 	timeout := 5 * time.Second
+	template := TemplateJSON
+	events := []string{"port_changed"}
 
-	client := NewClient(url, timeout)
+	client := NewClient(url, timeout, template, events)
 
 	if client.url != url {
 		t.Errorf("client.url = %v, want %v", client.url, url)
 	}
 	if client.timeout != timeout {
 		t.Errorf("client.timeout = %v, want %v", client.timeout, timeout)
+	}
+	if client.template != template {
+		t.Errorf("client.template = %v, want %v", client.template, template)
+	}
+	if len(client.events) != len(events) {
+		t.Errorf("client.events length = %d, want %d", len(client.events), len(events))
 	}
 	if client.client == nil {
 		t.Error("client.client is nil, want non-nil")
@@ -46,7 +54,7 @@ func TestSendPortChange_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient(server.URL, 5*time.Second)
+	client := NewClient(server.URL, 5*time.Second, TemplateJSON, []string{"port_changed"})
 	err := client.SendPortChange(8080, 9090)
 
 	if err != nil {
@@ -76,7 +84,7 @@ func TestSendPortChange_ServerError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient(server.URL, 5*time.Second)
+	client := NewClient(server.URL, 5*time.Second, TemplateJSON, []string{"port_changed"})
 	err := client.SendPortChange(8080, 9090)
 
 	if err == nil {
@@ -91,7 +99,7 @@ func TestSendPortChange_Timeout(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient(server.URL, 10*time.Millisecond)
+	client := NewClient(server.URL, 10*time.Millisecond, TemplateJSON, []string{"port_changed"})
 	err := client.SendPortChange(8080, 9090)
 
 	if err == nil {
@@ -100,7 +108,7 @@ func TestSendPortChange_Timeout(t *testing.T) {
 }
 
 func TestSendPortChange_InvalidURL(t *testing.T) {
-	client := NewClient("http://[::1]:namedport", 5*time.Second)
+	client := NewClient("http://[::1]:namedport", 5*time.Second, TemplateJSON, []string{"port_changed"})
 	err := client.SendPortChange(8080, 9090)
 
 	if err == nil {
@@ -127,7 +135,7 @@ func TestSendPortChange_NonOKStatusCodes(t *testing.T) {
 			}))
 			defer server.Close()
 
-			client := NewClient(server.URL, 5*time.Second)
+			client := NewClient(server.URL, 5*time.Second, TemplateJSON, []string{"port_changed"})
 			err := client.SendPortChange(8080, 9090)
 
 			if err == nil {
@@ -155,7 +163,7 @@ func TestSendPortChange_SuccessStatusCodes(t *testing.T) {
 			}))
 			defer server.Close()
 
-			client := NewClient(server.URL, 5*time.Second)
+			client := NewClient(server.URL, 5*time.Second, TemplateJSON, []string{"port_changed"})
 			err := client.SendPortChange(8080, 9090)
 
 			if err != nil {
@@ -163,4 +171,143 @@ func TestSendPortChange_SuccessStatusCodes(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTemplateFormats(t *testing.T) {
+tests := []struct {
+name     string
+template Template
+validate func(*testing.T, map[string]interface{})
+}{
+{
+name:     "discord template",
+template: TemplateDiscord,
+validate: func(t *testing.T, payload map[string]interface{}) {
+if payload["content"] == nil {
+t.Error("Discord payload missing 'content' field")
+}
+if payload["embeds"] == nil {
+t.Error("Discord payload missing 'embeds' field")
+}
+},
+},
+{
+name:     "slack template",
+template: TemplateSlack,
+validate: func(t *testing.T, payload map[string]interface{}) {
+if payload["text"] == nil {
+t.Error("Slack payload missing 'text' field")
+}
+if payload["blocks"] == nil {
+t.Error("Slack payload missing 'blocks' field")
+}
+},
+},
+{
+name:     "gotify template",
+template: TemplateGotify,
+validate: func(t *testing.T, payload map[string]interface{}) {
+if payload["title"] == nil {
+t.Error("Gotify payload missing 'title' field")
+}
+if payload["message"] == nil {
+t.Error("Gotify payload missing 'message' field")
+}
+if payload["extras"] == nil {
+t.Error("Gotify payload missing 'extras' field")
+}
+},
+},
+{
+name:     "json template",
+template: TemplateJSON,
+validate: func(t *testing.T, payload map[string]interface{}) {
+if payload["event"] == nil {
+t.Error("JSON payload missing 'event' field")
+}
+if payload["old_port"] == nil {
+t.Error("JSON payload missing 'old_port' field")
+}
+if payload["new_port"] == nil {
+t.Error("JSON payload missing 'new_port' field")
+}
+},
+},
+}
+
+for _, tt := range tests {
+t.Run(tt.name, func(t *testing.T) {
+var receivedPayload map[string]interface{}
+server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+if err := json.NewDecoder(r.Body).Decode(&receivedPayload); err != nil {
+t.Errorf("failed to decode request body: %v", err)
+}
+w.WriteHeader(http.StatusOK)
+}))
+defer server.Close()
+
+client := NewClient(server.URL, 5*time.Second, tt.template, []string{"port_changed"})
+err := client.SendPortChange(8080, 9090)
+
+if err != nil {
+t.Errorf("SendPortChange() error = %v, want nil", err)
+}
+
+tt.validate(t, receivedPayload)
+})
+}
+}
+
+func TestEventFiltering(t *testing.T) {
+tests := []struct {
+name            string
+events          []string
+shouldSend      bool
+}{
+{
+name:       "port_changed event enabled",
+events:     []string{"port_changed"},
+shouldSend: true,
+},
+{
+name:       "port_changed with other events",
+events:     []string{"port_changed", "sync_error"},
+shouldSend: true,
+},
+{
+name:       "port_changed event disabled",
+events:     []string{"sync_error"},
+shouldSend: false,
+},
+{
+name:       "empty events list sends all",
+events:     []string{},
+shouldSend: true,
+},
+}
+
+for _, tt := range tests {
+t.Run(tt.name, func(t *testing.T) {
+callCount := 0
+server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+callCount++
+w.WriteHeader(http.StatusOK)
+}))
+defer server.Close()
+
+client := NewClient(server.URL, 5*time.Second, TemplateJSON, tt.events)
+err := client.SendPortChange(8080, 9090)
+
+if err != nil {
+t.Errorf("SendPortChange() error = %v, want nil", err)
+}
+
+if tt.shouldSend && callCount == 0 {
+t.Error("expected webhook to be sent but it wasn't")
+}
+if !tt.shouldSend && callCount > 0 {
+t.Error("expected webhook not to be sent but it was")
+}
+})
+}
 }

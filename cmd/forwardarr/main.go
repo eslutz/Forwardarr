@@ -36,8 +36,18 @@ func main() {
 
 	var webhookClient *webhook.Client
 	if cfg.WebhookEnabled {
-		webhookClient = webhook.NewClient(cfg.WebhookURL, cfg.WebhookTimeout)
-		slog.Info("webhook notifications enabled", "url", cfg.WebhookURL, "timeout", cfg.WebhookTimeout)
+		webhookClient = webhook.NewClient(
+			cfg.WebhookURL,
+			cfg.WebhookTimeout,
+			webhook.Template(cfg.WebhookTemplate),
+			cfg.WebhookEvents,
+		)
+		slog.Info("webhook notifications enabled",
+			"url", cfg.WebhookURL,
+			"timeout", cfg.WebhookTimeout,
+			"template", cfg.WebhookTemplate,
+			"events", cfg.WebhookEvents,
+		)
 	}
 
 	watcher, err := sync.NewWatcher(cfg.GluetunPortFile, qbitClient, webhookClient, cfg.SyncInterval)

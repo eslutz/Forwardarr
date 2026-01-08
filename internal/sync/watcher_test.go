@@ -355,7 +355,7 @@ func TestWatcherSyncPortWithWebhook(t *testing.T) {
 	defer webhookServer.Close()
 
 	// Create webhook client
-	webhookClient := webhook.NewClient(webhookServer.URL, 5*time.Second)
+	webhookClient := webhook.NewClient(webhookServer.URL, 5*time.Second, webhook.TemplateJSON, []string{"port_changed"})
 
 	watcher := &Watcher{portFile: portFile, qbitClient: qbitClient, webhookClient: webhookClient}
 	if err := watcher.syncPort(); err != nil {

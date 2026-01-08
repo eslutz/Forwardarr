@@ -26,6 +26,8 @@ func TestLoad(t *testing.T) {
 				WebhookURL:      "",
 				WebhookEnabled:  false,
 				WebhookTimeout:  10 * time.Second,
+				WebhookTemplate: "json",
+				WebhookEvents:   []string{"port_changed"},
 			},
 		},
 		{
@@ -40,6 +42,8 @@ func TestLoad(t *testing.T) {
 				"LOG_LEVEL":               "debug",
 				"WEBHOOK_URL":             "http://example.com/webhook",
 				"WEBHOOK_TIMEOUT":         "30",
+				"WEBHOOK_TEMPLATE":        "discord",
+				"WEBHOOK_EVENTS":          "port_changed,sync_error",
 			},
 			expected: &Config{
 				GluetunPortFile: "/custom/path/port",
@@ -52,6 +56,8 @@ func TestLoad(t *testing.T) {
 				WebhookURL:      "http://example.com/webhook",
 				WebhookEnabled:  true,
 				WebhookTimeout:  30 * time.Second,
+				WebhookTemplate: "discord",
+				WebhookEvents:   []string{"port_changed", "sync_error"},
 			},
 		},
 		{
@@ -71,6 +77,8 @@ func TestLoad(t *testing.T) {
 				WebhookURL:      "",
 				WebhookEnabled:  false,
 				WebhookTimeout:  10 * time.Second,
+				WebhookTemplate: "json",
+				WebhookEvents:   []string{"port_changed"},
 			},
 		},
 		{
@@ -89,6 +97,8 @@ func TestLoad(t *testing.T) {
 				WebhookURL:      "",
 				WebhookEnabled:  false,
 				WebhookTimeout:  10 * time.Second,
+				WebhookTemplate: "json",
+				WebhookEvents:   []string{"port_changed"},
 			},
 		},
 	}
@@ -136,6 +146,18 @@ func TestLoad(t *testing.T) {
 			}
 			if cfg.WebhookTimeout != tt.expected.WebhookTimeout {
 				t.Errorf("WebhookTimeout = %v, want %v", cfg.WebhookTimeout, tt.expected.WebhookTimeout)
+			}
+			if cfg.WebhookTemplate != tt.expected.WebhookTemplate {
+				t.Errorf("WebhookTemplate = %v, want %v", cfg.WebhookTemplate, tt.expected.WebhookTemplate)
+			}
+			if len(cfg.WebhookEvents) != len(tt.expected.WebhookEvents) {
+				t.Errorf("WebhookEvents length = %d, want %d", len(cfg.WebhookEvents), len(tt.expected.WebhookEvents))
+			} else {
+				for i := range cfg.WebhookEvents {
+					if cfg.WebhookEvents[i] != tt.expected.WebhookEvents[i] {
+						t.Errorf("WebhookEvents[%d] = %v, want %v", i, cfg.WebhookEvents[i], tt.expected.WebhookEvents[i])
+					}
+				}
 			}
 		})
 	}
